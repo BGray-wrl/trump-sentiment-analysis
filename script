@@ -1,0 +1,63 @@
+import os
+import csv
+import nltk
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+
+# Uncomment this if you haven't downloaded the VADER lexicon yet
+# nltk.download('vader_lexicon')
+
+def analyze_sentiment_vader(filename):
+    try:
+        with open(filename, 'r') as file:
+            text = file.read()
+            # Check if the file is empty
+            if not text.strip():
+                print(f"Warning: '{filename}' is empty.")
+                return None
+
+            analyzer = SentimentIntensityAnalyzer()
+            sentiment = analyzer.polarity_scores(text)
+            return sentiment
+    except Exception as e:
+        print(f"Error processing file {filename}: {e}")
+        return None
+
+def analyze_speeches(directory):
+    # Prepare the list to store results
+    results = []
+
+    # Loop through the files in the directory
+    for filename in os.listdir(directory):
+        if filename.endswith('.txt'):
+            # Analyze the sentiment of the speech
+            filepath = os.path.join(directory, filename)
+            sentiment = analyze_sentiment_vader(filepath)
+            
+            if sentiment is not None:
+                # Extract month/day from filename and add sentiment data
+                month_day = filename[:-4]  # Removing the '.txt' extension
+                results.append({
+                    'month_day': month_day,
+                    'neg': sentiment['neg'],
+                    'neu': sentiment['neu'],
+                    'pos': sentiment['pos'],
+                    'compound': sentiment['compound']
+                })
+    
+    # Check if there are any results before attempting to write the CSV
+    if results:
+        # Write results to a CSV file
+        with open('speech_sentiments.csv', mode='w', newline='') as csvfile:
+            fieldnames = ['month_day', 'neg', 'neu', 'pos', 'compound']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+            writer.writeheader()
+            for result in results:
+                writer.writerow(result)
+        
+        print("Sentiment analysis complete. Results saved to 'speech_sentiments.csv'.")
+    else:
+        print("No valid data found to write to CSV.")
+
+# Run the analysis on the "speeches" folder
+analyze_speeches('speeches')
